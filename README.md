@@ -5,6 +5,10 @@ Android flick keyboard fork with offline Polish and English word suggestions.
 - Up to three suggestions above the keyboard: completion and spelling correction
   while typing, then next-word prediction after a space.
 - Tap a suggestion to replace the word at the cursor and continue typing.
+- Swipe down on space to toggle Polish / English suggestions without changing
+  the letter layout. This selects manual language mode; automatic layout matching
+  can be re-enabled in Settings → Behaviour. The space key shows the current
+  suggestion language (PL or EN), without a popup notification.
 - While typing, the first suggestion is your current word exactly as written.
   Tap it to save it to the active language's personal dictionary and add a space.
   The remaining two slots offer completions or corrections. After a space,

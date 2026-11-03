@@ -454,6 +454,13 @@ sealed class Action {
         override val description: String = "Opens FlickBoard's settings app."
     }
 
+    data object SwitchSuggestionLanguage : Action() {
+        override fun visual(modifier: ModifierState?): ActionVisual = ActionVisual.Label("PL/EN")
+        override val title: String = "Switch Suggestion Language"
+        override val description: String =
+            "Switches Polish / English suggestions and selects manual suggestion language mode."
+    }
+
     data class SwitchLetterLayer(val direction: SearchDirection) : Action() {
         override fun visual(modifier: ModifierState?): ActionVisual =
             ActionVisual.Icon(R.drawable.baseline_keyboard_24)

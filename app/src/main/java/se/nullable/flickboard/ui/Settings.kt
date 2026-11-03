@@ -1313,6 +1313,18 @@ class AppSettings(val ctx: SettingsContext) {
             (if (followLetterLayout.state.value) SuggestionLanguage.forLetterLayout(activeLetterLayer) else null)
                 ?: suggestionLanguage.state.value
 
+    fun toggleSuggestionLanguage(current: SuggestionLanguage): SuggestionLanguage {
+        val next = when (current) {
+            SuggestionLanguage.Polish -> SuggestionLanguage.English
+            SuggestionLanguage.English -> SuggestionLanguage.Polish
+        }
+        ctx.prefs.edit {
+            suggestionLanguage.writeTo(this, next)
+            followLetterLayout.writeTo(this, false)
+        }
+        return next
+    }
+
     val periodOnDoubleSpace = Setting.Bool(
         key = "periodOnDoubleSpace",
         label = "Period on double space",

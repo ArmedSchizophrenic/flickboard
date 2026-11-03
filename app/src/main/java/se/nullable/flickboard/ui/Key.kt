@@ -340,8 +340,13 @@ fun RenderActionVisual(
     modifier: Modifier = Modifier,
     style: ActionStyle = ActionStyle.default(action, modifiers),
 ) {
-    val overrideActionVisual =
-        enterKeyLabel.takeIf { action is Action.Enter }?.let { ActionVisual.Label(it) }
+    val overrideActionVisual = when (action) {
+        Action.SwitchSuggestionLanguage -> ActionVisual.Label(
+            LocalAppSettings.current.currentSuggestionLanguage.code.uppercase(java.util.Locale.ROOT),
+        )
+        is Action.Enter -> enterKeyLabel?.let { ActionVisual.Label(it) }
+        else -> null
+    }
     val usedColour = animateColorAsState(
         when (style) {
             ActionStyle.Normal -> colour

@@ -22,6 +22,7 @@ import java.util.Locale
 val SPACE = KeyM(
     actions = mapOf(
         Direction.CENTER to Action.Text(" "),
+        Direction.BOTTOM to Action.SwitchSuggestionLanguage,
         Direction.LEFT to Action.Jump(direction = SearchDirection.Backwards),
         Direction.RIGHT to Action.Jump(direction = SearchDirection.Forwards),
     ),

@@ -179,6 +179,7 @@ class InputSession(
     ): OnAction {
         val context = LocalContext.current
         val appSettings = LocalAppSettings.current
+        val suggestionLanguage = appSettings.currentSuggestionLanguage
         val periodOnDoubleSpace = appSettings.periodOnDoubleSpace.state
         val disabledDeadkeys = appSettings.disabledDeadkeys.state
         val displayLimits = LocalDisplayLimits.current
@@ -617,6 +618,10 @@ class InputSession(
                         ComponentName(context, MainActivity::class.java),
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
+
+                Action.SwitchSuggestionLanguage -> {
+                    appSettings.toggleSuggestionLanguage(suggestionLanguage)
+                }
 
                 is Action.SwitchLetterLayer -> {
                     appSettings.activeLetterLayerIndex.currentValue =
