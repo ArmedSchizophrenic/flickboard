@@ -8,7 +8,8 @@ plugins {
     kotlin("plugin.serialization") version "2.0.21"
 }
 
-val keystorePropertiesFile = rootProject.file("../flickboard.keystore.properties")
+val keystorePropertiesFile = rootProject.file("signing.properties")
+    .takeIf { it.exists() } ?: rootProject.file("../flickboard.keystore.properties")
 val keystoreProperties = keystorePropertiesFile
     .takeIf { it.exists() }
     ?.let { propFile ->
@@ -37,8 +38,8 @@ android {
         applicationId = "se.nullable.flickboard"
         minSdk = 28
         targetSdk = 35
-        versionCode = 56
-        versionName = "0.2.0"
+        versionCode = 57
+        versionName = "0.3.0"
         base.archivesName = "flickboard-v${versionName}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

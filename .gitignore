@@ -11,6 +11,8 @@
 /.kotlin/sessions
 .DS_Store
 /build
+/signing.properties
+/.signing/
 /captures
 .externalNativeBuild
 .cxx

@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.getSystemService
 import kotlinx.coroutines.launch
+import se.nullable.flickboard.suggestions.SuggestionSession
 import se.nullable.flickboard.model.Action
 import se.nullable.flickboard.model.CaseChangeDirection
 import se.nullable.flickboard.model.FastActionType
@@ -40,6 +41,7 @@ import kotlin.math.max
 class InputSession(
     private val inputConnection: InputConnection,
     val editorInfo: EditorInfo?,
+    val suggestions: SuggestionSession,
 ) {
     val emojiMode = mutableStateOf(false)
 
@@ -253,6 +255,7 @@ class InputSession(
 
                             else -> null
                         }
+                        val learnAfterCommit = suggestions.prepareTyping(char)
                         inputConnection.beginBatchEdit()
                         if (combiner != null) {
                             inputConnection.deleteSurroundingText(
@@ -260,10 +263,10 @@ class InputSession(
                                 0,
                             )
                         }
-                        inputConnection.commitText(
+                        if (inputConnection.commitText(
                             char,
                             1,
-                        )
+                        )) learnAfterCommit()
                         inputConnection.endBatchEdit()
                     }
                 }
@@ -695,6 +698,7 @@ class InputSession(
                     }
                 }
             }
+            suggestions.refresh()
             actionSuccessful
         }
     }
@@ -755,8 +759,14 @@ class InputSession(
         }
     }
 
+    fun acceptSuggestion(word: String) {
+        lastTyped = null
+        suggestions.accept(word)
+    }
+
     fun updateCursorAnchorInfo(cursorAnchorInfo: CursorAnchorInfo?) {
         cursor = cursorAnchorInfo
+        suggestions.refresh()
         // Best-effort: drop lastTyped when the user moves the selection,
         // such that moving the cursor away and then back into position
         // will still clear it.

@@ -57,6 +57,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -97,6 +98,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import se.nullable.flickboard.suggestions.SuggestionLanguage
+import se.nullable.flickboard.suggestions.SuggestionRepository
 import se.nullable.flickboard.BuildConfig
 import se.nullable.flickboard.MainActivitySharedElement
 import se.nullable.flickboard.PiF
@@ -258,14 +261,19 @@ fun SettingsHomePage(
                     label = "Discuss on Discord",
                 )
                 MenuPageLink(
-                    onClick = { openUri(Uri.parse("https://github.com/nightkr/flickboard")) },
+                    onClick = { openUri(Uri.parse("https://github.com/ArmedSchizophrenic/flickboard")) },
                     icon = painterResource(id = R.drawable.baseline_code_24),
                     label = "View Source on GitHub",
                 )
                 MenuPageLink(
-                    onClick = { openUri(Uri.parse("https://github.com/nightkr/flickboard/issues")) },
+                    onClick = { openUri(Uri.parse("https://github.com/ArmedSchizophrenic/flickboard/issues")) },
                     icon = painterResource(id = R.drawable.baseline_bug_report_24),
                     label = "Report Bugs on GitHub",
+                )
+                MenuPageLink(
+                    onClick = { openUri(Uri.parse("https://github.com/hermitdave/FrequencyWords")) },
+                    icon = painterResource(R.drawable.baseline_code_24),
+                    label = "Suggestion dictionaries: Hermit Dave / OpenSubtitles (CC BY-SA 4.0, adapted)",
                 )
             }
         }
@@ -288,6 +296,16 @@ fun SettingsSectionPage(
                 .verticalScroll(rememberScrollState())
                 .weight(1F),
         ) {
+            if (section.key == "behaviour") {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                TextButton(onClick = {
+                    scope.launch {
+                        SuggestionRepository.get(context).clear()
+                        Toast.makeText(context, "Learned words cleared (Polski / English)", Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("Clear learned words (all languages)") }
+            }
             section.settings.forEach { setting ->
                 when (setting) {
                     is Setting.Bool -> BoolSetting(setting)
@@ -1243,6 +1261,32 @@ class AppSettings(val ctx: SettingsContext) {
         ctx = ctx,
     )
 
+    val wordSuggestions = Setting.Bool(
+        key = "wordSuggestions",
+        label = "Word suggestions",
+        description = "Show up to three completions, spelling corrections or next words. Tap to insert.",
+        defaultValue = true,
+        ctx = ctx,
+    )
+
+    val learnWords = Setting.Bool(
+        key = "learnWords",
+        label = "Learn from typing on this device",
+        description = "Save words and word sequences locally to personalize suggestions. Password fields are excluded.",
+        defaultValue = true,
+        ctx = ctx,
+    )
+
+    val suggestionLanguage = Setting.Enum(
+        key = "suggestionLanguage",
+        label = "Suggestion language",
+        defaultValue = SuggestionLanguage.Polish,
+        options = SuggestionLanguage.entries,
+        tryEnumValueOfT = ::tryEnumValueOf,
+        ctx = ctx,
+        previewOverride = { Text(it.label, Modifier.padding(16.dp)) },
+    )
+
     val periodOnDoubleSpace = Setting.Bool(
         key = "periodOnDoubleSpace",
         label = "Period on double space",
@@ -1477,6 +1521,9 @@ class AppSettings(val ctx: SettingsContext) {
                 label = "Behaviour",
                 icon = R.drawable.baseline_app_settings_alt_24,
                 settings = listOf(
+                    wordSuggestions,
+                    suggestionLanguage,
+                    learnWords,
                     enableFastActions,
                     enableLongSwipes,
                     longSwipeThreshold,

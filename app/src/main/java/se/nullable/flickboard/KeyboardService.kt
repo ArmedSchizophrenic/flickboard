@@ -8,6 +8,7 @@ import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,11 +25,16 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import se.nullable.flickboard.suggestions.SuggestionRepository
+import se.nullable.flickboard.suggestions.SuggestionSession
+import se.nullable.flickboard.ui.LocalAppSettings
+import se.nullable.flickboard.ui.SuggestionBar
 import se.nullable.flickboard.ui.ConfiguredKeyboard
 import se.nullable.flickboard.ui.EnabledLayers
 import se.nullable.flickboard.ui.FlickBoardParent
@@ -64,7 +70,11 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        currentInputSession.value = InputSession(currentInputConnection, attribute)
+        currentInputSession.value?.suggestions?.close()
+        currentInputSession.value = InputSession(
+            currentInputConnection, attribute,
+            SuggestionSession(currentInputConnection, attribute, SuggestionRepository.get(this), lifecycleScope),
+        )
         var cursorUpdatesRequested = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 currentInputConnection.requestCursorUpdates(
                     InputConnection.CURSOR_UPDATE_MONITOR,
@@ -124,7 +134,14 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
                                     }
                                 }
 
-                                val inputSession = currentInputSession.value!!
+                                val inputSession = currentInputSession.value ?: return@ProvideDisplayLimits
+                                val settings = LocalAppSettings.current
+                                val suggestionsEnabled = settings.wordSuggestions.state.value
+                                val learningEnabled = settings.learnWords.state.value
+                                val suggestionLanguage = settings.suggestionLanguage.state.value
+                                SideEffect {
+                                    inputSession.suggestions.configure(suggestionsEnabled, learningEnabled, suggestionLanguage)
+                                }
                                 val onAction = inputSession.actionHandler(
                                     warningSnackbarHostState = warningSnackbarHostState,
                                     switchInputMethod = ::switchInputMethod,
@@ -133,16 +150,23 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
                                     when {
                                         inputSession.emojiMode.value -> EmojiKeyboard(onAction = onAction)
                                         else -> {
-                                            ConfiguredKeyboard(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                onAction = onAction,
-                                                onModifierStateUpdated = inputSession::updateModifierState,
-                                                enterKeyLabel = inputSession.editorInfo?.actionLabel?.toString(),
-                                                overrideEnabledLayers = when (inputSession.editorInfo?.let { it.inputType and InputType.TYPE_MASK_CLASS }) {
-                                                    InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_PHONE -> EnabledLayers.Numbers
-                                                    else -> null
-                                                },
-                                            )
+                                            Column {
+                                                if (inputSession.suggestions.visible.value) {
+                                                    SuggestionBar(inputSession.suggestions.words.value) { word ->
+                                                        inputSession.acceptSuggestion(word)
+                                                    }
+                                                }
+                                                ConfiguredKeyboard(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    onAction = onAction,
+                                                    onModifierStateUpdated = inputSession::updateModifierState,
+                                                    enterKeyLabel = inputSession.editorInfo?.actionLabel?.toString(),
+                                                    overrideEnabledLayers = when (inputSession.editorInfo?.let { it.inputType and InputType.TYPE_MASK_CLASS }) {
+                                                        InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_PHONE -> EnabledLayers.Numbers
+                                                        else -> null
+                                                    },
+                                                )
+                                            }
                                             SnackbarHost(
                                                 warningSnackbarHostState,
                                                 modifier = Modifier
@@ -164,6 +188,20 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
     override fun onUpdateCursorAnchorInfo(cursorAnchorInfo: CursorAnchorInfo?) {
         super.onUpdateCursorAnchorInfo(cursorAnchorInfo)
         currentInputSession.value?.updateCursorAnchorInfo(cursorAnchorInfo)
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int,
+        candidatesStart: Int, candidatesEnd: Int,
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        currentInputSession.value?.suggestions?.refresh()
+    }
+
+    override fun onFinishInput() {
+        currentInputSession.value?.suggestions?.close()
+        currentInputSession.value = null
+        super.onFinishInput()
     }
 
     override fun onCreate() {
