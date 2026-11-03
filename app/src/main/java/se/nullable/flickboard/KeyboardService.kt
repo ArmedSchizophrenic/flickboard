@@ -153,7 +153,7 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
                                 val settings = LocalAppSettings.current
                                 val suggestionsEnabled = settings.wordSuggestions.state.value
                                 val learningEnabled = settings.learnWords.state.value
-                                val suggestionLanguage = settings.suggestionLanguage.state.value
+                                val suggestionLanguage = settings.currentSuggestionLanguage
                                 SideEffect {
                                     inputSession.suggestions.configure(suggestionsEnabled, learningEnabled, suggestionLanguage)
                                 }

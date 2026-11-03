@@ -291,31 +291,35 @@ fun SettingsSectionPage(
     modifier: Modifier = Modifier
 ) {
     Column {
-        Column(
-            modifier
-                .verticalScroll(rememberScrollState())
-                .weight(1F),
-        ) {
-            if (section.key == "behaviour") {
-                val context = LocalContext.current
-                val scope = rememberCoroutineScope()
-                TextButton(onClick = {
-                    scope.launch {
-                        SuggestionRepository.get(context).clear()
-                        Toast.makeText(context, "Learned words cleared (Polski / English)", Toast.LENGTH_SHORT).show()
+        if (section.key == "dictionary") {
+            SavedWordsSettings(modifier.weight(1f))
+        } else {
+            Column(
+                modifier
+                    .verticalScroll(rememberScrollState())
+                    .weight(1F),
+            ) {
+                if (section.key == "behaviour") {
+                    val context = LocalContext.current
+                    val scope = rememberCoroutineScope()
+                    TextButton(onClick = {
+                        scope.launch {
+                            SuggestionRepository.get(context).clear()
+                            Toast.makeText(context, "Personal dictionary and history cleared (Polski / English)", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text("Clear personal dictionary and history (all languages)") }
+                }
+                section.settings.forEach { setting ->
+                    when (setting) {
+                        is Setting.Bool -> BoolSetting(setting)
+                        is Setting.Integer -> {} // Not rendered right now, implement if used anywhere
+                        is Setting.Text -> TextSetting(setting)
+                        is Setting.FloatSlider -> FloatSliderSetting(setting)
+                        is Setting.EnumList<*> -> EnumListSetting(setting)
+                        is Setting.Enum -> EnumSetting(setting)
+                        is Setting.Image -> ImageSetting(setting)
+                        is Setting.Colour -> ColourSetting(setting)
                     }
-                }) { Text("Clear learned words (all languages)") }
-            }
-            section.settings.forEach { setting ->
-                when (setting) {
-                    is Setting.Bool -> BoolSetting(setting)
-                    is Setting.Integer -> {} // Not rendered right now, implement if used anywhere
-                    is Setting.Text -> TextSetting(setting)
-                    is Setting.FloatSlider -> FloatSliderSetting(setting)
-                    is Setting.EnumList<*> -> EnumListSetting(setting)
-                    is Setting.Enum -> EnumSetting(setting)
-                    is Setting.Image -> ImageSetting(setting)
-                    is Setting.Colour -> ColourSetting(setting)
                 }
             }
         }
@@ -888,6 +892,13 @@ class AppSettings(val ctx: SettingsContext) {
         ctx = ctx,
     )
 
+    val activeLetterLayer: LetterLayerOption
+        @Composable get() {
+            val layers = letterLayers.state.value
+            return layers.getOrNull(activeLetterLayerIndex.state.value)
+                ?: layers.firstOrNull() ?: LetterLayerOption.English
+        }
+
     val secondaryLetterLayer = Setting.Enum(
         key = "secondaryLetterLayer",
         label = "Secondary letter layout",
@@ -1218,6 +1229,7 @@ class AppSettings(val ctx: SettingsContext) {
     val backgroundImage = Setting.Image(
         key = "backgroundImage",
         label = "Background image",
+        description = "Default: cat.jpg. Select your own image to override it.",
         ctx = ctx,
     )
 
@@ -1272,20 +1284,34 @@ class AppSettings(val ctx: SettingsContext) {
     val learnWords = Setting.Bool(
         key = "learnWords",
         label = "Learn from typing on this device",
-        description = "Save words and word sequences locally to personalize suggestions. Password fields are excluded.",
+        description = "Automatically learn word sequences on this device. Tapping the current word can still save it when this is off. Password fields are excluded.",
+        defaultValue = true,
+        ctx = ctx,
+    )
+
+    val followLetterLayout = Setting.Bool(
+        key = "followLetterLayout",
+        label = "Match suggestions to letter layout",
+        description = "Automatically switch Polish / English suggestions with the active main letter layout.",
         defaultValue = true,
         ctx = ctx,
     )
 
     val suggestionLanguage = Setting.Enum(
         key = "suggestionLanguage",
-        label = "Suggestion language",
+        label = "Manual / fallback suggestion language",
+        description = "Used when automatic switching is off or the active layout has no Polish / English dictionary.",
         defaultValue = SuggestionLanguage.Polish,
         options = SuggestionLanguage.entries,
         tryEnumValueOfT = ::tryEnumValueOf,
         ctx = ctx,
         previewOverride = { Text(it.label, Modifier.padding(16.dp)) },
     )
+
+    val currentSuggestionLanguage: SuggestionLanguage
+        @Composable get() =
+            (if (followLetterLayout.state.value) SuggestionLanguage.forLetterLayout(activeLetterLayer) else null)
+                ?: suggestionLanguage.state.value
 
     val periodOnDoubleSpace = Setting.Bool(
         key = "periodOnDoubleSpace",
@@ -1321,8 +1347,16 @@ class AppSettings(val ctx: SettingsContext) {
     val keyHeight = Setting.FloatSlider(
         key = "keyHeight",
         label = "Key height",
-        defaultValue = 72F,
+        defaultValue = 64F,
         range = 48F..128F,
+        ctx = ctx,
+    )
+
+    val suggestionBarHeight = Setting.FloatSlider(
+        key = "suggestionBarHeight",
+        label = "Suggestion bar height",
+        defaultValue = 48F,
+        range = 32F..80F,
         ctx = ctx,
     )
 
@@ -1485,6 +1519,7 @@ class AppSettings(val ctx: SettingsContext) {
                     enabledLayersLandscape,
                     handedness,
                     keyHeight,
+                    suggestionBarHeight,
                     keyboardMargin,
                     landscapeLocation,
                     landscapeScale,
@@ -1522,6 +1557,7 @@ class AppSettings(val ctx: SettingsContext) {
                 icon = R.drawable.baseline_app_settings_alt_24,
                 settings = listOf(
                     wordSuggestions,
+                    followLetterLayout,
                     suggestionLanguage,
                     learnWords,
                     enableFastActions,
@@ -1539,6 +1575,10 @@ class AppSettings(val ctx: SettingsContext) {
                     circleDiscontinuityThreshold,
                     circleAngleThreshold,
                 ),
+            ),
+            SettingsSection(
+                key = "dictionary", label = "Personal dictionary",
+                icon = R.drawable.baseline_checklist_24, settings = emptyList(),
             ),
             SettingsSection(
                 key = "feedback", label = "Feedback", icon = R.drawable.baseline_vibration_24,

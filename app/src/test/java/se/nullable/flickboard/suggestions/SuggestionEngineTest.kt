@@ -49,13 +49,40 @@ class SuggestionEngineTest {
         engine.learn("Flickboard", emptyList())
         val saved = Json.encodeToString(engine.learned)
         val restored = SuggestionEngine(emptyList(), Json.decodeFromString<LearnedWords>(saved))
-        assertEquals(listOf("Flickboard"), restored.suggest(WordContext.from("Fli")))
+        assertEquals(listOf("Fli", "Flickboard"), restored.suggest(WordContext.from("Fli")))
     }
 
     @Test fun preservesCapitalization() {
         val engine = SuggestionEngine(listOf("góra"))
-        assertEquals(listOf("Góra"), engine.suggest(WordContext.from("Gura")))
-        assertEquals(listOf("GÓRA"), engine.suggest(WordContext.from("GURA")))
+        assertEquals(listOf("Gura", "Góra"), engine.suggest(WordContext.from("Gura")))
+        assertEquals(listOf("GURA", "GÓRA"), engine.suggest(WordContext.from("GURA")))
+    }
+
+    @Test fun currentWordIsFirstWithoutDuplicatesAndLeavesTwoOtherSlots() {
+        val engine = SuggestionEngine(listOf("hello", "help", "helmet", "hell"))
+        val suggestions = engine.suggest(WordContext.from("hell"))
+        assertEquals("hell", suggestions.first())
+        assertEquals(3, suggestions.size)
+        assertEquals(suggestions.size, suggestions.distinct().size)
+        assertEquals(listOf("BrandNewWord"), SuggestionEngine(emptyList()).suggest(WordContext.from("BrandNewWord")))
+    }
+
+    @Test fun savedWordsKeepTheirSpellingAcrossRestartAndCanBeDeleted() {
+        val engine = SuggestionEngine(emptyList())
+        engine.addWord("FlickZZboard")
+        engine.learn("FlickZZboard", listOf("my", "keyboard"))
+        val restored = SuggestionEngine(emptyList(), Json.decodeFromString<LearnedWords>(Json.encodeToString(engine.learned)))
+        assertTrue("FlickZZboard" in restored.suggest(WordContext.from("Fli")))
+        restored.removeWord("FlickZZboard")
+        assertEquals(listOf("Fli"), restored.suggest(WordContext.from("Fli")))
+        assertTrue(restored.learned.pairs.isEmpty())
+        assertTrue(restored.learned.triples.isEmpty())
+    }
+
+    @Test fun oldHistoryLoadsWithoutSavedDictionary() {
+        val restored = Json.decodeFromString<LearnedWords>("""{"words":{"hello":2}}""")
+        assertTrue(restored.savedWords.isEmpty())
+        assertEquals(2, restored.words["hello"])
     }
 
     @Test fun sentenceBoundariesAndCompletedWordDetection() {

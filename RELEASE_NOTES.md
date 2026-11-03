@@ -1,21 +1,33 @@
-# FlickBoard 0.3.1 — poprawka zmiany rozmiaru klawiatury
+# FlickBoard 0.4.0 — słownik osobisty i podpowiedzi PL / EN
 
-- Po zmianie rozmiaru klawiatury Android ponownie przelicza obszar dotyku,
-  także gdy okno klawiatury nadal zajmuje ten sam obszar ekranu.
-- Klawisze kierują kliknięcia i gesty do bieżącej sesji wpisywania po powrocie
-  z ustawień lub zmianie pola tekstowego.
-- Nowa sesja otrzymuje aktualny stan klawiszy modyfikujących bez dodatkowego
-  naciśnięcia.
+- Podczas pisania pierwsza podpowiedź to bieżące słowo dokładnie w wpisanej
+  postaci. Kliknięcie zatwierdza je, dodaje spację i zapisuje w osobistym słowniku
+  aktywnego języka. Pozostałe dwa miejsca służą do uzupełnień i poprawek.
+- Po spacji wszystkie trzy miejsca proponują kolejne słowa.
+- Settings → Personal dictionary: osobne listy ręcznie zapisanych słów PL / EN
+  oraz usuwanie pojedynczych wpisów wraz z ich wyuczonymi powiązaniami.
+- Ręczny zapis działa także przy wyłączonym automatycznym uczeniu. Pola haseł
+  i edytory żądające wyłączenia personalizacji nie zapisują słów.
+- Język podpowiedzi automatycznie podąża za aktywnym Letter layout. W Behaviour
+  można wyłączyć automat i ustawić język ręczny / zapasowy.
+- Podpowiedzi obsługują tekstowe pola wyszukiwania, paski adresu oraz edytory
+  udostępniające niepełny tekst wokół kursora. Dotyczy to typów pól używanych
+  m.in. do wyszukiwania w przeglądarkach i aplikacjach.
+- Domyślny Key height: 64 dp. Zapisane indywidualne ustawienia są zachowane.
+- Settings → Layout → Suggestion bar height: 32–80 dp, domyślnie 48 dp.
+- Domyślne tło klawiatury: dołączone cat.jpg. Własny obrazek wybrany
+  w ustawieniach nadal ma pierwszeństwo.
 
-APK jest podpisane tym samym kluczem co v0.3.0, więc można je zainstalować
-jako aktualizację, zachowując ustawienia i wyuczone słowa.
+Wszystko działa lokalnie. Dane PL i EN pozostają oddzielne, a zapisane słowa
+przetrwają ponowne uruchomienie. Usunięcie wpisu osobistego nie usuwa słowa
+ze słownika wbudowanego, jeżeli już w nim występuje.
 
-Walidacja: trzy testy regresji Android/Compose uruchamiane na komputerze
-przez Robolectric: zmiana rozmiaru i sesji (kliknięcia oraz gesty), stan
-modyfikatorów i przeliczanie obszaru dotyku przy powiększaniu oraz pomniejszaniu.
-Wszystkie trzy wykrywają stare zachowanie i przechodzą z poprawką. Dodatkowo
-przechodzi 16 testów podpowiedzi, 3 testy tekstowe i lint wersji release.
-Poprawka wymaga jeszcze potwierdzenia na fizycznym urządzeniu.
+APK jest podpisane tym samym kluczem co v0.3.0 i v0.3.1. Instalacja jako
+aktualizacja zachowuje ustawienia oraz dotychczasową historię uczenia.
 
-W pełnym zestawie testów nadal występuje wcześniejszy, niezwiązany błąd
-`SymbolLayerTest` dotyczący nakładania symboli w układzie arabskim.
+Walidacja: 38 testów silnika, zapisu i odczytu słownika z dysku, ręcznego zapisu
+przy wyłączonym uczeniu, rozdzielenia języków, usuwania w ekranie ustawień,
+przełączania układów, pól wyszukiwania, zmiany rozmiaru i edycji tekstu oraz lint.
+Sprawdzenie konkretnych aplikacji na fizycznym telefonie pozostaje do potwierdzenia.
+W pełnym zestawie pozostaje wcześniejszy błąd SymbolLayerTest dotyczący układu
+arabskiego; nie dotyczy on podpowiedzi ani słownika osobistego.

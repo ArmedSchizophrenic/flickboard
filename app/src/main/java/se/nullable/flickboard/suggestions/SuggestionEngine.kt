@@ -11,6 +11,7 @@ data class LearnedWords(
     val words: MutableMap<String, Int> = mutableMapOf(),
     val pairs: MutableMap<String, Int> = mutableMapOf(),
     val triples: MutableMap<String, Int> = mutableMapOf(),
+    val savedWords: MutableMap<String, String> = mutableMapOf(),
 )
 
 data class WordContext(val prefix: String, val previous: List<String>) {
@@ -39,6 +40,21 @@ class SuggestionEngine(seedWords: List<String>, val learned: LearnedWords = Lear
     private val foldedDictionary = dictionary.keys.associateWith(::folded)
     private val phoneticDictionary = dictionary.keys.associateWith { folded(it.replace('ó', 'u')) }
 
+    fun addWord(word: String): Boolean {
+        val normalized = normalize(word)
+        if (!WORD.matches(normalized)) return false
+        return learned.savedWords.put(normalized, word) != word
+    }
+
+    fun removeWord(word: String): Boolean {
+        val normalized = normalize(word)
+        if (learned.savedWords.remove(normalized) == null) return false
+        learned.words.remove(normalized)
+        learned.pairs.keys.removeAll { normalized in it.split(' ') }
+        learned.triples.keys.removeAll { normalized in it.split(' ') }
+        return true
+    }
+
     fun learn(completedWord: String, previous: List<String>) {
         val word = normalize(completedWord)
         if (word.length !in 1..40 || !WORD.matches(word)) return
@@ -52,8 +68,9 @@ class SuggestionEngine(seedWords: List<String>, val learned: LearnedWords = Lear
         if (context.size == 2) increment(learned.triples, "${context.joinToString(" ")} $word", 15000)
     }
 
-    fun suggest(context: WordContext): List<String> {
-        if (context.prefix.length > 40) return emptyList()
+    fun suggest(context: WordContext, currentWord: String = context.prefix): List<String> {
+        val literal = currentWord.takeIf { context.prefix.isNotEmpty() && WORD.matches(normalize(it)) }
+        if (context.prefix.length > 40) return listOfNotNull(literal)
         val prefix = normalize(context.prefix)
         val foldedPrefix = folded(prefix)
         val phoneticPrefix = folded(prefix.replace('ó', 'u'))
@@ -66,7 +83,7 @@ class SuggestionEngine(seedWords: List<String>, val learned: LearnedWords = Lear
                 (if (pair > 0) 100_000L + weight(pair, 50_000) else 0L) +
                 weight(learned.words[word] ?: 0, 10_000)
         }
-        return (dictionary.keys + learned.words.keys).mapNotNull { word ->
+        val ranked = (dictionary.keys + learned.words.keys + learned.savedWords.keys).mapNotNull { word ->
             val foldedWord = foldedDictionary[word] ?: folded(word)
             val matchScore = when {
                 prefix.isEmpty() -> 0
@@ -82,9 +99,13 @@ class SuggestionEngine(seedWords: List<String>, val learned: LearnedWords = Lear
                     2_000_000L - distance * 100_000L
                 }
             }
-            word to (matchScore + contextScore(word).coerceAtMost(900_000) + (dictionary[word] ?: 0))
+            word to (matchScore + contextScore(word).coerceAtMost(900_000) +
+                (if (prefix.isNotEmpty() && word in learned.savedWords) 10_000 else 0) + (dictionary[word] ?: 0))
         }.sortedWith(compareByDescending<Pair<String, Long>> { it.second }.thenBy { it.first })
-            .take(3).map { applyCase(it.first, context.prefix) }
+            .map { applyCase(learned.savedWords[it.first] ?: it.first, context.prefix) }
+            .filter { literal == null || normalize(it) != normalize(literal) }
+            .distinct().take(if (literal != null) 2 else 3)
+        return listOfNotNull(literal) + ranked
     }
 
     private fun applyCase(word: String, prefix: String): String = when {

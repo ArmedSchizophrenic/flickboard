@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
@@ -19,11 +20,12 @@ import se.nullable.flickboard.ui.theme.LocalKeyboardTheme
 @Composable
 fun SuggestionBar(words: List<String>, onSelect: (String) -> Unit) {
     val theme = LocalKeyboardTheme.current
+    val height = LocalAppSettings.current.suggestionBarHeight.state.value.dp
     Surface(color = theme.keySurfaceColour, contentColor = theme.keyIndicatorColour) {
-        Row(Modifier.fillMaxWidth().height(48.dp)) {
+        Row(Modifier.fillMaxWidth().height(height)) {
             words.take(3).forEach { word ->
                 Box(
-                    Modifier.weight(1f).height(48.dp)
+                    Modifier.weight(1f).fillMaxHeight()
                         .clickable(role = Role.Button) { onSelect(word) }
                         .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
