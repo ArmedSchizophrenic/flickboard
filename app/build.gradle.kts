@@ -38,8 +38,8 @@ android {
         applicationId = "se.nullable.flickboard"
         minSdk = 28
         targetSdk = 35
-        versionCode = 57
-        versionName = "0.3.0"
+        versionCode = 58
+        versionName = "0.3.1"
         base.archivesName = "flickboard-v${versionName}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -95,6 +95,9 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -121,6 +124,9 @@ dependencies {
     // Runtime library for kotlin serialization plugin
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    testImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")

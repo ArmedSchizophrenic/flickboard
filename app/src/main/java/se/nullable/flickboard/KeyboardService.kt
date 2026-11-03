@@ -53,10 +53,25 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
 
     private var viewHeight: Int = 0 // Set once view is measured
     private var keyboardHeight: Int = 0 // Set once view is measured
+
+    internal fun updateInputGeometry(
+        view: View,
+        viewHeight: Int = this.viewHeight,
+        keyboardHeight: Int = this.keyboardHeight,
+    ) {
+        if (this.viewHeight == viewHeight && this.keyboardHeight == keyboardHeight) return
+        this.viewHeight = viewHeight
+        this.keyboardHeight = keyboardHeight
+        // The Compose child can resize while the full-screen Android view stays
+        // the same size. Schedule a View traversal so Android recomputes the IME
+        // touchable insets as well. Post to avoid requesting layout during measure.
+        view.post { view.requestLayout() }
+    }
+
     override fun onComputeInsets(outInsets: Insets) {
         super.onComputeInsets(outInsets)
         // Invisible area "occupied by" the view
-        outInsets.contentTopInsets = viewHeight - keyboardHeight
+        outInsets.contentTopInsets = (viewHeight - keyboardHeight).coerceAtLeast(0)
         outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
     }
 
@@ -100,7 +115,7 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
             view.setContent {
                 BoxWithConstraints(
                     Modifier.onSizeChanged { size ->
-                        viewHeight = size.height
+                        updateInputGeometry(view, viewHeight = size.height)
                     },
                     contentAlignment = Alignment.BottomCenter,
                 ) {
@@ -115,7 +130,7 @@ class KeyboardService : InputMethodService(), LifecycleOwner, SavedStateRegistry
                     )
                     Box(
                         Modifier.onSizeChanged { size ->
-                            keyboardHeight = size.height
+                            updateInputGeometry(view, keyboardHeight = size.height)
                         },
                     ) {
                         FlickBoardParent {

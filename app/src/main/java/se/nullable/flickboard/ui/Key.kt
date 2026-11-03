@@ -35,6 +35,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +105,9 @@ fun Key(
     }
 
     val view = LocalView.current
+    // pointerInput(key) survives recomposition and editor/session changes. Its
+    // coroutine must dispatch to the current handler, not the old InputConnection.
+    val currentOnAction = rememberUpdatedState(onAction)
 //    val haptic = LocalHapticFeedback.current
 
     val settings = LocalAppSettings.current
@@ -171,7 +175,7 @@ fun Key(
                     lastActionTaken = TakenAction(action)
                 }
             }
-            return onAction.onAction(action, key, gesture)
+            return currentOnAction.value?.onAction(action, key, gesture) ?: false
         }
         Modifier.pointerInput(key) {
             awaitEachGesture {

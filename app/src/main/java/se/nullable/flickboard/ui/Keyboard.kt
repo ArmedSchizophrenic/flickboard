@@ -117,7 +117,7 @@ fun Keyboard(
     val keyboardMarginBottomPortrait = appSettings.keyboardMarginBottomPortrait.state
     val noReverseRtlBrackets = appSettings.noReverseRtlBrackets.state
     var modifierState: ModifierState by remember { mutableStateOf(ModifierState()) }
-    LaunchedEffect(modifierState) {
+    LaunchedEffect(modifierState, onModifierStateUpdated) {
         onModifierStateUpdated(modifierState)
     }
     val layoutState = rememberUpdatedState(layout)
